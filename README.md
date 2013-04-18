@@ -7,6 +7,8 @@
 ## Motivations and Consequences
 * The end goal of this code is to extract the significant article text from each article, for chunking and graph analysis
     * A lot of data such as image metadata (positioning, type, size), external links, etc is unnecesary for initial applications so maintaining it is low priority.
+        * Prioritised data - text, relational data (categories)
+        * Secondary data - images, files, formatting
 * The code should be able to parse any Wikipedia page. It will mostly be used for articles, but it should be able to return a successful parse from notes, categories, and various other namespaces. Planning to use the parser with Wikipedia, Wikiquotes, Wiktionary, Wikibooks.
 
 Markup spec - [http://www.mediawiki.org/wiki/Markup_spec](http://www.mediawiki.org/wiki/Markup_spec)
