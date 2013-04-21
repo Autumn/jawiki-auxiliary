@@ -18,7 +18,55 @@ class Lexer
   end
 
   def scanChar(*n)
+    if n.length > 0
+      @doc[@pos+n[0]]
+    else 
+      @doc[@pos+1]
+    end
+  end
 
+
+  def delimiter_reached?(delimiters)
+    delimiters.length.times do |i|
+      if scanChar(i) != delimiters[i]
+        return false
+      end
+    end 
+    true
+  end
+
+  def read_until(*delimiters)
+    start = @pos
+    while not delimiter_reached?(delimiters) 
+      nextChar
+    end
+
+    str = [@doc[start..@pos-1]]
+
+    delimiters.length.times do |i|
+      nextChar
+    end
+    str
+  end 
+
+  def get_start_of_line_token
+    str = ""
+    if @doc[@pos] == "\n"
+      nextChar
+      [:p]
+    elsif @doc[@pos] == "{" 
+      if scanChar == "|"
+        nextChar 2
+        [:table, read_until("|", "}")]
+      elsif scanChar == "{"
+        nextChar 2
+        [:category, read_until("}", "}")]
+      end
+    else
+      while @doc[@pos] != "\n" and @pos != @doc.length
+        nextChar
+      end
+    end
   end
 
   def start_of_line
@@ -29,6 +77,8 @@ class Lexer
     # horizontal rule - remove
     # redirect - use
     start = @pos
+
+  
     while @doc[@pos] != "\n" and @pos != @doc.length
       nextChar
     end
@@ -37,12 +87,15 @@ class Lexer
 
   def next_token
     if @pos == 0
-      start_of_line
+      get_start_of_line_token
     elsif @doc[@pos] == "\n"
       nextChar
-      start_of_line
+      get_start_of_line_token
     elsif @pos == @doc.length 
       "EOF"
+    else
+      nextChar
+      nil
     end
   end 
 
