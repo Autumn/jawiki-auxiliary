@@ -50,7 +50,6 @@ class Lexer
   end 
 
   def get_start_of_line_token
-    str = ""
     if @doc[@pos] == "\n"
       nextChar
       [:p]
@@ -62,11 +61,39 @@ class Lexer
         nextChar 2
         [:category, read_until("}", "}")]
       end
-    else
-      while @doc[@pos] != "\n" and @pos != @doc.length
+    elsif @doc[@pos] == "="
+      if scanChar == "=" # heading 
+        # determine heading level
+
+        h = 0
+
+        until scanChar(h) != "="
+          h += 1
+        end
+
+        nextChar h
+        
+        [:heading, read_until(*("=" * h).split(""))]
+      end
+    elsif ["*", "#", ":", ";"].include? scanChar(0)
+      # list
+      list = Array.new
+      while ["*", "#", ":", ";"].include? scanChar(0)
+        list.push get_to_end_of_line
         nextChar
       end
+      [:list, list]
+    else
+      [:text, get_to_end_of_line]
     end
+  end
+
+  def get_to_end_of_line
+    start = @pos
+    while @doc[@pos] != "\n" and @pos != @doc.length
+      nextChar
+    end
+    [@doc[start..@pos]]
   end
 
   def start_of_line
@@ -77,7 +104,6 @@ class Lexer
     # horizontal rule - remove
     # redirect - use
     start = @pos
-
   
     while @doc[@pos] != "\n" and @pos != @doc.length
       nextChar
@@ -94,8 +120,7 @@ class Lexer
     elsif @pos == @doc.length 
       "EOF"
     else
-      nextChar
-      nil
+      [:text, get_to_end_of_line]
     end
   end 
 
