@@ -49,10 +49,82 @@ class Lexer
     str
   end 
 
-  def anywhere_token(text)
-    tokens = Array.new
-    text
+  class TextParser
+    def initialize(text)
+      @pos = 0
+      @doc = text
+    end
+   
+    def nextChar(*n)
+      if n.length > 0
+        @pos += n[0]
+      else
+        @pos += 1
+      end
+    end
+
+    def scanChar(*n)
+      if n.length > 0
+        @doc[@pos+n[0]]
+      else 
+        @doc[@pos+1]
+      end
+    end
+
+
+    def delimiter_reached?(delimiters)
+      delimiters.length.times do |i|
+        if scanChar(i) != delimiters[i]
+          return false
+        end
+      end 
+      true
+    end
+
+    def parseLink
+      tokens = Array.new
+      start = @pos
+      while not delimiter_reached? ["]", "]"]
+        if delimiter_reached? ["[", "["]
+          tokens.push [:link, @doc[start..@pos-1]]
+          nextChar 2
+          tokens.push parseLink
+          start = @pos
+        end
+        nextChar
+      end
+      tokens.push [:link, @doc[start..@pos-1]]
+      nextChar 2
+      tokens
+    end
+
+    def tokenise
+      tokens = Array.new
+      start = @pos
+      while @pos < @doc.length
+        if delimiter_reached? ["[", "["]
+          tokens.push @doc[start..@pos-1] if start != @pos
+          nextChar 2
+          tokens.push parseLink 
+          start = @pos 
+        elsif delimiter_reached? ["{", "{"]
+          #tokens.push @doc[start..@pos-1] if start != @pos
+          nextChar 2
+          category = @pos
+          while not delimiter_reached? ["}", "}"]
+            nextChar
+          end
+          tokens.push [:category, @doc[category..@pos-1]]
+          nextChar 2
+        end 
+        nextChar
+      end
+      tokens.push @doc[start..@pos]
+ puts "#{tokens}"
+      tokens
+    end
   end
+
 
   def next_line_token
     if @pos == @doc.length
@@ -96,9 +168,10 @@ class Lexer
     elsif delimiter_reached?(["-", "-", "-", "-"])
       [:hr, get_to_end_of_line] 
     else
+
       text = get_to_end_of_line
       # parse text with anywhere rules
-      [:text, anywhere_token(text)]
+      [:text, TextParser.new(text).tokenise]
       #[:text, text]
     end
   end
@@ -108,24 +181,18 @@ class Lexer
     while @doc[@pos] != "\n" and @pos != @doc.length
       nextChar
     end
-    [@doc[start..@pos-1]] # @pos - 1 to ignore the newline
+    @doc[start..@pos-1] # @pos - 1 to ignore the newline
   end
 
   def scan
-    first_scan_tokens = Array.new
     tokens = Array.new
     while (token = next_line_token) != "EOF"
-      first_scan_tokens.push token
+      tokens.push token
     end
-
-puts "#{first_scan_tokens}"
-    first_scan_tokens.each do |token|
-      # scan every token for anywhere symbols
-      
-    end
+    tokens
   end
 
 end
 
 lexer = Lexer.new(ARGV[0])
-lexer.scan
+tokens = lexer.scan

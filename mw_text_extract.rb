@@ -20,9 +20,10 @@ class Parser
 
   def parseLink
     print "[\"link\", \""
+    
     while checkDelimiter("]", "]") == false
       if checkDelimiter("[", "[")
-        nextChar
+        nextChar 2
         print "\", "
         parseLink
         print ", \""
@@ -32,6 +33,23 @@ class Parser
     end
     print "\"]"
     nextChar(2)
+  end
+
+  def parseLink
+    tokens = Array.new
+    start = @pos
+    while checkDelimiter("]", "]") == false
+      if checkDelimiter("[", "[")
+        tokens.push [:link, @text[start..@pos-1]]
+        nextChar 2
+        tokens.push parseLink
+        start = @pos
+      end
+      nextChar
+    end
+    tokens.push [:link, @text[start..@pos-1]]
+    nextChar 2
+    tokens
   end
 
   def parseTemplate
@@ -83,21 +101,21 @@ class Parser
     return ""
   end
 
- def skipFormatting 
-   if varDelimiter("\'", "\'", "\'", "\'", "\'")
-     nextChar(5)
-   elsif varDelimiter("\'", "\'", "\'")
-     nextChar(5)
-   elsif varDelimiter("\'", "\'")
-     nextChar(5)
-   end
- end
+  def skipFormatting 
+    if varDelimiter("\'", "\'", "\'", "\'", "\'")
+      nextChar(5)
+    elsif varDelimiter("\'", "\'", "\'")
+      nextChar(5)
+    elsif varDelimiter("\'", "\'")
+      nextChar(5)
+    end
+  end
 
   def parse
     while @pos < @text.length
       if startLink
         nextChar(2)
-        parseLink
+        puts "#{parseLink}"
       elsif startTemplate
         nextChar(2)
         parseTemplate
@@ -122,17 +140,20 @@ class Parser
           print "\"]"
         # check bullet lists
         elsif varDelimiter("*")
-
+          nextChar
         end
       else
         ### change - formatting can occur /anywhere/ 
         if @text[@pos] == "\'"
-          if checkFormatting != ""
-             skipFormatting 
-          end
+          #if checkFormatting != ""
+          #   skipFormatting 
+          #end
+          nextChar
+        else
+          
+          print @text[@pos]
+          nextChar
         end
-        print @text[@pos]
-        nextChar
       end
     end
   end
@@ -143,6 +164,7 @@ file = open("2")
 article = Nokogiri::HTML file.read
 article.encoding = 'utf-8'
 text = article.xpath("//text").text
+
 
 parser = Parser.new(text)
 
